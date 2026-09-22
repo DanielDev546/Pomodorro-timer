@@ -1,16 +1,24 @@
 <script>
-	const FOCUS_DURATION = 25 * 60;
+	import TimeIntervals from './TimeIntervals.svelte';
+
 	const BREAK_DURATION = 5 * 60;
 	const SESSIONS_PER_CYCLE = 4;
 
+	const presets = [
+		{ label: '15 min', seconds: 15 * 60 },
+		{ label: '25 min', seconds: 25 * 60 },
+		{ label: '45 min', seconds: 45 * 60 }
+	];
+
+	let focusDuration = $state(25 * 60);
 	let mode = $state('focus'); // 'focus' | 'break'
-	let secondsRemaining = $state(FOCUS_DURATION);
+	let secondsRemaining = $state(focusDuration);
 	let status = $state('idle'); // 'idle' | 'running' | 'paused'
 	let sessionsCompleted = $state(0);
 
 	let intervalId = null;
 
-	const modeDuration = $derived(mode === 'focus' ? FOCUS_DURATION : BREAK_DURATION);
+	const modeDuration = $derived(mode === 'focus' ? focusDuration : BREAK_DURATION);
 	const progress = $derived(1 - secondsRemaining / modeDuration);
 
 	const minutes = $derived(Math.floor(secondsRemaining / 60));
@@ -37,7 +45,7 @@
 			secondsRemaining = BREAK_DURATION;
 		} else {
 			mode = 'focus';
-			secondsRemaining = FOCUS_DURATION;
+			secondsRemaining = focusDuration;
 		}
 		// TODO: sound/visual cue on session end
 	}
@@ -67,19 +75,33 @@
 		}
 	}
 
+	function selectPreset(secondsValue) {
+		focusDuration = secondsValue;
+		if (mode === 'focus' && status === 'idle') {
+			secondsRemaining = secondsValue;
+		}
+	}
+
 	$effect(() => {
 		return () => clearInterval(intervalId);
 	});
 </script>
 
-<div class="w-full max-w-sm rounded-2xl bg-neutral-900 p-8 text-center">
+<div class="w-full max-w-sm rounded-3xl bg-neutral-900 p-8 text-center">
 	<p class="mb-6 text-xs tracking-widest text-neutral-400 uppercase">
 		{mode === 'focus' ? 'Focus session' : 'Break'}
 	</p>
 
+	<TimeIntervals
+		{presets}
+		selectedSeconds={focusDuration}
+		disabled={status !== 'idle'}
+		onSelect={selectPreset}
+	/>
+
 	<!-- TODO: ring visualization goes here, driven by `progress` -->
 	<div
-		class="mx-auto mb-6 flex h-56 w-56 items-center justify-center rounded-full border-8 border-neutral-800"
+		class="mx-auto mt-6 mb-6 flex h-56 w-56 items-center justify-center rounded-full border-8 border-neutral-800"
 	>
 		<div>
 			<span class="text-4xl font-medium text-white">{timeLabel}</span>
